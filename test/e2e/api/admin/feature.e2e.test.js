@@ -362,3 +362,33 @@ test.serial('can untag feature', async t => {
             t.is(res.body.tags.length, 0);
         });
 });
+
+test.serial('Can get features tagged by tag', async t => {
+    t.plan(2);
+    const request = await setupApp(stores);
+    await request.post('/api/admin/features').send({
+        name: 'test.feature',
+        type: 'killswitch',
+        enabled: true,
+        strategies: [{ name: 'default' }],
+    });
+    await request.post('/api/admin/features').send({
+        name: 'test.feature2',
+        type: 'killswitch',
+        enabled: true,
+        strategies: [{ name: 'default' }],
+    });
+    const tag = { value: 'Crazy', type: 'simple' };
+    await request
+        .post('/api/admin/features/test.feature/tags')
+        .send(tag)
+        .expect(201);
+    return request
+        .get('/api/admin/features?tags[]=simple:Crazy')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(res => {
+            t.is(res.body.features.length, 1);
+            t.is(res.body.features[0].name, 'test.feature');
+        });
+});
